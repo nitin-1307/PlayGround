@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>Astra Creatures — A Creature-Collecting Survival RPG</title>
+    <meta name="description" content="Astra Creatures is an original low-poly creature-collecting survival RPG. Explore five biomes, befriend 150 creatures, battle in real time, train, evolve, and chase rare astral events." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Cpath d='M32 8l5.2 18.8L56 32l-18.8 5.2L32 56l-5.2-18.8L8 32l18.8-5.2z' fill='%23ffd166'/%3E%3C/svg%3E" />
+    <script type="module" crossorigin src="./assets/index-Bo71cqmz.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DJcVwCY2.css">
+  </head>
+  <body>
+    <div id="game-shell">
+      <canvas id="scene" aria-label="Astra Creatures game world"></canvas>
+      <div id="vignette"></div>
+      <div id="flash"></div>
+
+      <div id="hud" aria-live="polite">
+        <div class="hud-left">
+          <div class="brand-panel">
+            <div class="brand-mark" aria-hidden="true">✦</div>
+            <div>
+              <h1>ASTRA CREATURES</h1>
+              <p id="location-label">Hearthlight Haven</p>
+            </div>
+          </div>
+          <div id="quest-tracker" class="panel quest-tracker"></div>
+        </div>
+
+        <div class="hud-right">
+          <div class="top-actions panel">
+            <div id="currency-bar" class="currency-bar"></div>
+            <div class="menu-buttons">
+              <button data-screen="dex" class="icon-button" title="AstraDex (C)"><span class="icon">◈</span><span>Dex</span></button>
+              <button data-screen="party" class="icon-button" title="Party (P)"><span class="icon">◉</span><span>Party</span></button>
+              <button data-screen="training" class="icon-button" title="Training (T)"><span class="icon">▤</span><span>Train</span></button>
+              <button data-screen="quests" class="icon-button" title="Quests (J)"><span class="icon">✧</span><span>Quests</span></button>
+              <button data-screen="inventory" class="icon-button" title="Inventory (I)"><span class="icon">▣</span><span>Bag</span></button>
+              <button data-screen="settings" class="icon-button" title="Settings (O)"><span class="icon">⚙</span><span>Settings</span></button>
+            </div>
+          </div>
+          <div id="legendary-banner" class="legendary-banner hidden">
+            <div class="legendary-glow"></div>
+            <div class="legendary-copy">
+              <span class="eyebrow">ASTRAL EVENT</span>
+              <strong id="legendary-title">The Scar is quiet</strong>
+              <span id="legendary-detail"></span>
+            </div>
+            <div id="legendary-timer" class="legendary-timer">--:--</div>
+          </div>
+        </div>
+
+        <div id="party-dock" class="party-dock"></div>
+
+        <div id="minimap-panel" class="panel minimap-panel">
+          <canvas id="minimap" width="188" height="188" aria-label="World minimap"></canvas>
+          <div class="minimap-caption"><span id="minimap-biome">Hearthlight Haven</span><span class="minimap-hint">M</span></div>
+        </div>
+
+        <div id="interaction-prompt" class="interaction-prompt hidden">
+          <span class="key">E</span>
+          <span id="interaction-text">Interact</span>
+        </div>
+
+        <div id="hint-line" class="hint-line"></div>
+        <div id="toast-stack" class="toast-stack"></div>
+
+        <div id="battle-hud" class="battle-hud hidden">
+          <div class="battle-top">
+            <div class="battle-enemy panel">
+              <div class="battle-enemy-head">
+                <span id="enemy-rarity" class="rarity-chip">Wild</span>
+                <strong id="enemy-name">Wild Creature</strong>
+                <span id="enemy-level" class="level-chip">Lv. 5</span>
+              </div>
+              <div class="hp-bar large"><div id="enemy-hp-fill" class="hp-fill"></div><span id="enemy-hp-text">100 / 100</span></div>
+              <div id="enemy-statuses" class="status-row"></div>
+            </div>
+            <div class="battle-objective">
+              <span class="eyebrow">REAL-TIME ENCOUNTER</span>
+              <strong id="battle-round-label">Weaken and capture</strong>
+              <span id="battle-log-line">Stay mobile. Dodge telegraphed attacks.</span>
+            </div>
+          </div>
+
+          <div class="battle-bottom">
+            <div class="battle-player panel">
+              <div class="battle-player-head">
+                <strong id="battle-player-name">Spriglow</strong>
+                <span id="battle-player-level" class="level-chip">Lv. 5</span>
+              </div>
+              <div class="hp-bar large"><div id="player-hp-fill" class="hp-fill"></div><span id="player-hp-text">100 / 100</span></div>
+              <div class="battle-player-meta">
+                <span id="player-shield" class="shield-chip hidden">Shield 0</span>
+                <span id="battle-active-status" class="status-row"></span>
+              </div>
+            </div>
+
+            <div class="battle-actions">
+              <div id="move-bar" class="move-bar"></div>
+              <div class="battle-utility">
+                <button id="battle-dodge" class="battle-button dodge"><span class="key">Q</span><span>Dodge</span><small id="dodge-cd"></small></button>
+                <button id="battle-capture" class="battle-button capture"><span class="key">F</span><span>Capture</span><small id="capture-chance"></small></button>
+                <button id="battle-potion" class="battle-button"><span class="key">R</span><span>Salve</span><small id="battle-pot">0</small></button>
+                <button id="battle-flee" class="battle-button flee"><span class="key">Esc</span><span>Retreat</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mobile-controls" class="mobile-controls hidden">
+        <div id="joystick" class="joystick"><div id="joystick-knob" class="joystick-knob"></div></div>
+        <div class="mobile-actions">
+          <button id="mobile-interact" class="mobile-touch-button">E<small>Interact</small></button>
+          <button id="mobile-sprint" class="mobile-touch-button">⇧<small>Sprint</small></button>
+        </div>
+      </div>
+
+      <div id="modal-root" class="modal-root hidden"></div>
+
+      <div id="title-screen" class="title-screen">
+        <div class="title-stars"></div>
+        <div class="title-content">
+          <div class="title-kicker">AN ORIGINAL CREATURE-COLLECTING SURVIVAL RPG</div>
+          <h1 class="title-logo">ASTRA<span>CREATURES</span></h1>
+          <p class="title-copy">Five biomes. One hundred and fifty creatures. A scar in the sky that remembers everything.</p>
+          <div class="title-features">
+            <span>Real-time battles</span><span>150 species</span><span>Train · Evolve · Explore</span>
+          </div>
+          <div class="title-actions">
+            <button id="enter-button" class="primary-button large" disabled>
+              <span class="button-spinner"></span>
+              <span>Preparing the wilds…</span>
+            </button>
+            <button id="how-to-button" class="ghost-button">How to play</button>
+          </div>
+          <p class="title-footnote">Keyboard + mouse, touch, or controller-friendly menus. All progress saves locally.</p>
+        </div>
+        <div class="title-creatures" aria-hidden="true">
+          <div class="title-creature c1"><div class="orb"></div></div>
+          <div class="title-creature c2"><div class="orb"></div></div>
+          <div class="title-creature c3"><div class="orb"></div></div>
+        </div>
+      </div>
+
+      <div id="loading-screen" class="loading-screen">
+        <div class="loading-mark">✦</div>
+        <div class="loading-bar"><div id="loading-fill"></div></div>
+        <p id="loading-text">Charting the Astral Scar…</p>
+      </div>
+    </div>
+  </body>
+</html>
