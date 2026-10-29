@@ -10,8 +10,8 @@ const JUMP_SPEED = 7.4
 function material(color, options = {}) {
   return new THREE.MeshStandardMaterial({
     color,
-    flatShading: true,
-    roughness: options.roughness ?? 0.7,
+    flatShading: false,
+    roughness: options.roughness ?? 0.62,
     metalness: options.metalness ?? 0.04,
     emissive: options.emissive || 0x000000,
     emissiveIntensity: options.emissiveIntensity || 0
@@ -60,21 +60,21 @@ export class Player {
     const metal = material('#cfd6d9', { metalness: 0.55, roughness: 0.38 })
     const glow = material('#9be8ff', { emissive: '#5fc8ff', emissiveIntensity: 0.8 })
 
-    const body = add(this.group, new THREE.CapsuleGeometry(0.34, 0.62, 4, 8), cloth, [0, 1.06, 0], [1, 1, 0.9])
+    const body = add(this.group, new THREE.CapsuleGeometry(0.34, 0.62, 12, 12), cloth, [0, 1.06, 0], [1, 1, 0.9])
     this.parts.body = body
-    add(this.group, new THREE.CylinderGeometry(0.36, 0.4, 0.35, 8), clothDark, [0, 0.68, 0])
-    add(this.group, new THREE.SphereGeometry(0.31, 10, 7), skin, [0, 1.72, 0.01])
-    const hairMesh = add(this.group, new THREE.IcosahedronGeometry(0.335, 1), hair, [0, 1.81, -0.03], [1, 0.8, 1])
+    add(this.group, new THREE.CylinderGeometry(0.36, 0.4, 0.35, 12, 1), clothDark, [0, 0.68, 0])
+    add(this.group, new THREE.SphereGeometry(0.31, 12, 10), skin, [0, 1.72, 0.01])
+    const hairMesh = add(this.group, new THREE.IcosahedronGeometry(0.335, 2), hair, [0, 1.81, -0.03], [1, 0.8, 1])
     this.parts.hair = hairMesh
-    add(this.group, new THREE.SphereGeometry(0.075, 6, 5), material('#1b1d24'), [-0.11, 1.74, 0.27])
-    add(this.group, new THREE.SphereGeometry(0.075, 6, 5), material('#1b1d24'), [0.11, 1.74, 0.27])
-    add(this.group, new THREE.SphereGeometry(0.09, 6, 5), skin, [0, 1.66, 0.29], [1.2, 0.6, 0.55])
+    add(this.group, new THREE.SphereGeometry(0.075, 10, 8), material('#1b1d24'), [-0.11, 1.74, 0.27])
+    add(this.group, new THREE.SphereGeometry(0.075, 10, 8), material('#1b1d24'), [0.11, 1.74, 0.27])
+    add(this.group, new THREE.SphereGeometry(0.09, 10, 8), skin, [0, 1.66, 0.29], [1.2, 0.6, 0.55])
     add(this.group, new THREE.BoxGeometry(0.76, 0.16, 0.42), scarf, [0, 1.42, 0.02], [1, 1, 1], [0, 0, -0.03])
     add(this.group, new THREE.BoxGeometry(0.22, 0.68, 0.12), scarf, [-0.28, 1.14, -0.28], [1, 1, 1], [0.18, 0, 0.24])
     add(this.group, new THREE.BoxGeometry(0.5, 0.68, 0.26), leather, [0, 1.1, -0.38])
     add(this.group, new THREE.BoxGeometry(0.38, 0.38, 0.18), leather, [0, 0.82, -0.54])
-    add(this.group, new THREE.CylinderGeometry(0.045, 0.05, 1.35, 5), metal, [0.46, 0.6, 0.05], [1, 1, 1], [0.05, 0, 0.04])
-    add(this.group, new THREE.SphereGeometry(0.08, 6, 5), glow, [0.46, 1.29, 0.05])
+    add(this.group, new THREE.CylinderGeometry(0.045, 0.05, 1.35, 12, 1), metal, [0.46, 0.6, 0.05], [1, 1, 1], [0.05, 0, 0.04])
+    add(this.group, new THREE.SphereGeometry(0.08, 10, 8), glow, [0.46, 1.29, 0.05])
 
     this.parts.legs = [
       this.makeLimb(skin, leather, [-0.18, 0.6, 0], 0.12, 0.54),
@@ -86,22 +86,24 @@ export class Player {
     ]
 
     const shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(0.58, 18),
+      new THREE.CircleGeometry(0.58, 24),
       new THREE.MeshBasicMaterial({ color: 0x0b0f16, transparent: true, opacity: 0.3, depthWrite: false })
     )
     shadow.rotation.x = -Math.PI / 2
     shadow.position.y = 0.04
     this.group.add(shadow)
     this.shadow = shadow
-  }
+    this.group.traverse((object) => {
+      if (object.isMesh && !object.material.isMeshBasicMaterial) object.castShadow = true
+    })
 
   makeLimb(skin, cloth, position, radius, length) {
     const pivot = new THREE.Group()
     pivot.position.set(...position)
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.9, length, 5), cloth)
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.9, length, 12, 1), cloth)
     upper.position.y = -length / 2
     pivot.add(upper)
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.2, 6, 4), skin)
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.2, 10, 8), skin)
     hand.position.y = -length - radius * 0.3
     pivot.add(hand)
     this.group.add(pivot)

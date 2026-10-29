@@ -132,26 +132,32 @@ export class BattleScene {
 
   makeTrainer() {
     const group = new THREE.Group()
-    const cloth = new THREE.MeshStandardMaterial({ color: '#2f7f82', flatShading: true, roughness: 0.75 })
-    const skin = new THREE.MeshStandardMaterial({ color: '#e8b48f', flatShading: true, roughness: 0.7 })
-    const scarf = new THREE.MeshStandardMaterial({ color: '#ffcc66', flatShading: true, roughness: 0.6 })
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.55, 4, 8), cloth)
+    const cloth = new THREE.MeshStandardMaterial({ color: '#2f7f82', flatShading: false, roughness: 0.66 })
+    const skin = new THREE.MeshStandardMaterial({ color: '#e8b48f', flatShading: false, roughness: 0.62 })
+    const scarf = new THREE.MeshStandardMaterial({ color: '#ffcc66', flatShading: false, roughness: 0.56 })
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.55, 12, 12), cloth)
     body.position.y = 1.0
     group.add(body)
-    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 1), skin)
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 2), skin)
     head.position.y = 1.7
     group.add(head)
     const scarfMesh = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.14, 0.38), scarf)
     scarfMesh.position.y = 1.38
     group.add(scarfMesh)
     for (const side of [-1, 1]) {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.5, 4), cloth)
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.5, 12, 1), cloth)
       leg.position.set(side * 0.16, 0.45, 0)
       group.add(leg)
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.5, 4), cloth)
+      const foot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), skin)
+      foot.position.set(side * 0.16, 0.12, 0)
+      group.add(foot)
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.5, 12, 1), cloth)
       arm.position.set(side * 0.38, 1.0, 0.04)
       arm.rotation.z = side * 0.2
       group.add(arm)
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), skin)
+      hand.position.set(side * 0.46, 0.72, 0.04)
+      group.add(hand)
     }
     return group
   }
@@ -442,13 +448,11 @@ export class BattleScene {
 
   spawnProjectile(type, from, to) {
     const color = TYPES[type]?.color || '#ffe066'
-    const mesh = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.24, 0),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
-    )
+    const mesh = this.makeStyledProjectile(type, color)
     mesh.position.copy(from)
     this.root.add(mesh)
     const duration = 0.24
+    const spin = new THREE.Vector3(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3)
     this.effects.push({
       mesh,
       life: 0,
@@ -457,26 +461,87 @@ export class BattleScene {
         effect.life += dt
         const t = Math.min(1, effect.life / effect.maxLife)
         mesh.position.lerpVectors(from, to, t)
+        mesh.rotation.x += spin.x * dt
+        mesh.rotation.y += spin.y * dt
+        mesh.scale.setScalar(0.7 + Math.sin(t * Math.PI) * 0.5)
         if (t >= 1) {
-          this.spawnBurst(to, color, 18, 1)
+          this.spawnBurst(to, color, 18, 1, type)
           effect.dead = true
         }
       }
     })
   }
 
-  spawnBurst(position, color, count = 12, strength = 1) {
+  makeStyledProjectile(type, color) {
+    const additive = { color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }
+    let mesh
+    switch (type) {
+      case 'Fire':
+        mesh = new THREE.Mesh(
+          projectileGeometry('flame', () => new THREE.ConeGeometry(0.2, 0.5, 7)),
+          new THREE.MeshBasicMaterial(additive)
+        )
+        mesh.rotation.x = -Math.PI / 3
+        break
+      case 'Frost':
+        mesh = new THREE.Mesh(
+          projectileGeometry('shard', () => new THREE.ConeGeometry(0.16, 0.44, 5)),
+          new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, transparent: true, opacity: 0.92, roughness: 0.2 })
+        )
+        mesh.rotation.x = Math.PI / 2
+        break
+      case 'Water':
+        mesh = new THREE.Mesh(projectileGeometry('drop', () => new THREE.IcosahedronGeometry(0.24, 1)), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.1 }))
+        break
+      case 'Nature':
+        mesh = new THREE.Mesh(
+          projectileGeometry('leaf', () => {
+            const shape = new THREE.Shape()
+            shape.moveTo(0, 0)
+            shape.quadraticCurveTo(0.22, 0.3, 0.08, 0.72)
+            shape.quadraticCurveTo(-0.06, 0.4, -0.2, 0.16)
+            shape.quadraticCurveTo(-0.1, 0.05, 0, 0)
+            return new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false })
+          }),
+          new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+        )
+        break
+      case 'Stone':
+        mesh = new THREE.Mesh(projectileGeometry('rock', () => new THREE.DodecahedronGeometry(0.24, 0)), new THREE.MeshStandardMaterial({ color, roughness: 0.85, emissive: color, emissiveIntensity: 0.12 }))
+        break
+      case 'Storm':
+        mesh = new THREE.Mesh(descriptionBoltGeometry(), new THREE.MeshBasicMaterial(additive))
+        break
+      default:
+        mesh = new THREE.Mesh(
+          projectileGeometry('star', () => new THREE.OctahedronGeometry(0.26, 0)),
+          new THREE.MeshBasicMaterial(additive)
+        )
+    }
+    const halo = new THREE.Mesh(
+      projectileGeometry('halo', () => new THREE.SphereGeometry(0.36, 10, 8)),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    mesh.add(halo)
+    return mesh
+  }
+
+  spawnBurst(position, color, count = 12, strength = 1, type = null) {
     const group = new THREE.Group()
     group.position.copy(position)
     this.root.add(group)
+    const particleSpec = impactSpec(type, color)
     const meshes = []
     for (let i = 0; i < count; i++) {
-      const mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(0.08 + Math.random() * 0.09, 0),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
-      )
+      const mesh = new THREE.Mesh(particleSpec.geometry, particleSpec.materialClass === 'basic'
+        ? new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+        : new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, transparent: true, opacity: 0.95, roughness: 0.5 }))
       const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.9, Math.random() - 0.5).normalize().multiplyScalar((2 + Math.random() * 3) * strength)
+      mesh.scale.setScalar(particleSpec.scale * (0.8 + Math.random() * 0.5))
+      const spin = new THREE.Vector3(Math.random() * 8 - 4, Math.random() * 8 - 4, Math.random() * 8 - 4)
       mesh.userData.velocity = dir
+      mesh.userData.spin = spin
+      if (particleSpec bsElongate) mesh.scale.y = particleSpec.scale * 2.4
       group.add(mesh)
       meshes.push(mesh)
     }
@@ -489,8 +554,9 @@ export class BattleScene {
         for (const particle of meshes) {
           particle.position.addScaledVector(particle.userData.velocity, dt)
           particle.userData.velocity.y -= 5 * dt
+          particle.rotation.x += particle.userData.spin.x * dt
+          particle.rotation.y += particle.userData.spin.y * dt
           particle.material.opacity = Math.max(0, 1 - effect.life / effect.maxLife)
-          particle.scale.setScalar(Math.max(0.01, 1 - effect.life / effect.maxLife))
         }
         if (effect.life >= effect.maxLife) effect.dead = true
       }

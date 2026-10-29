@@ -94,11 +94,27 @@ function biomeColor(x, z) {
   return color
 }
 
+function latheGuide(points, segments = 16) {
+  return new THREE.LatheGeometry(points.map(([x, y]) => new THREE.Vector3(x, y, 0)), segments)
+}
+function sphereGuide(radius, width, height) {
+  return new THREE.SphereGeometry(radius, width, height)
+}
+function capsuleGuide(radius, length, segments = 14) {
+  const half = length * 0.5
+  const points = [
+    [radius, 0],
+    [radius * 0.92, half * 0.18],
+    [radius * 0.78, half * 0.82],
+    [0, half]
+  ]
+  return new THREE.LatheGeometry(points.map(([x, y]) => new THREE.Vector3(x, y, 0)), segments)
+}
 function mat(color, options = {}) {
   return new THREE.MeshStandardMaterial({
     color,
-    flatShading: true,
-    roughness: options.roughness ?? 0.86,
+    flatShading: false,
+    roughness: options.roughness ?? 0.78,
     metalness: options.metalness ?? 0.02,
     emissive: options.emissive || 0x000000,
     emissiveIntensity: options.emissiveIntensity || 0,
@@ -162,6 +178,20 @@ export class World {
     this.buildBiomes()
     this.buildLandmarks()
     this.buildOuterRim()
+    this.applyShadowFlags()
+  }
+
+  applyShadowFlags() {
+    this.terrain.receiveShadow = true
+    const casting = this.quality !== 'low'
+    this.root.traverse((object) => {
+      if (!object.isMesh && !object.isInstancedMesh) return
+      const transparent = Boolean(object.material?.transparent)
+      const basic = Boolean(object.material?.isMeshBasicMaterial)
+      const instancedGrass = object.isInstancedMesh && !object.geometry?.attributes?.normal?.count
+      object.castShadow = casting && !transparent && !basic && !instancedGrass
+      if (object.isInstancedMesh) object.receiveShadow = false
+    })
   }
 
   buildTerrain() {
@@ -473,11 +503,11 @@ export class World {
     const guide = new THREE.Group()
     guide.position.set(x, y, z)
     group.add(guide)
-    const robe = add(guide, new THREE.ConeGeometry(0.62, 1.8, 7), mat('#6b7bd8'), [0, 0.9, 0])
-    const head = add(guide, new THREE.IcosahedronGeometry(0.4, 1), mat('#f1c9a5'), [0, 1.95, 0])
-    add(guide, new THREE.ConeGeometry(0.48, 1.0, 5), mat('#4853a3'), [0, 2.3, -0.05], [1, 1, 1], [0, 0, 0])
-    const staff = add(guide, new THREE.CylinderGeometry(0.045, 0.06, 2.2, 5), mat('#a88c60'), [0.55, 1.15, 0.1], [1, 1, 1], [0, 0, -0.12])
-    const orb = add(guide, new THREE.IcosahedronGeometry(0.22, 1), mat('#a9edff', { emissive: '#5fc8ff', emissiveIntensity: 1.0 }), [0.68, 2.25, 0.15])
+    const robe = add(guide, latheGuide([[0, 0], [0.5, 0.5], [0.62, 1.0], [0.5, 1.7], [0.34, 1.8]]), mat('#6b7bd8'), [0, 0.95, 0], [1, 1, 1], [-Math.PI / 2, 0, 0])
+    const head = add(guide, sphereGuide(0.4, 14, 12), mat('#f1c9a5'), [0, 2.75, 0], [1, 1, 1])
+    add(guide, latheGuide([[0, 0], [0.42, 0.2], [0.48, 0.7], [0.42, 1.0], [0, 1.05]], 10), mat('#4853a3'), [0, 2.9, -0.04], [1, 1, 1], [-Math.PI / 2, 0, 0])
+    const staff = add(guide, capsuleGuide(0.045, 2.2, 12), mat('#a88c60'), [0.55, 2.35, 0.1], [1, 1, 1], [0, 0, -0.12])
+    const orb = add(guide, sphereGuide(0.22, 14, 12), mat('#a9edff', { emissive: '#5fc8ff', emissiveIntensity: 1.0 }), [0.68, 3.0, 0.15])
     this.animated.push({ type: 'bob', mesh: orb, baseY: y + 2.25, amplitude: 0.12, speed: 2 })
     this.animated.push({ type: 'npc', group: guide, baseY: y })
     const sign = makeTextSprite('GUIDE WREN', '#9be8ff')
@@ -521,11 +551,21 @@ export class World {
 
   makeNpc(primary, secondary, role) {
     const group = new THREE.Group()
-    add(group, new THREE.ConeGeometry(0.46, 1.5, 7), mat(primary), [0, 0.75, 0])
-    add(group, new THREE.IcosahedronGeometry(0.34, 1), mat('#f1c9a5'), [0, 1.55, 0])
-    add(group, new THREE.ConeGeometry(0.4, 0.55, 5), mat(secondary), [0, 1.79, -0.05])
-    add(group, new THREE.CylinderGeometry(0.07, 0.09, 1.0, 4), mat(secondary), [-0.36, 1.0, 0], [1, 1, 1], [0, 0, 0.18])
-    add(group, new THREE.CylinderGeometry(0.07, 0.09, 1.0, 4), mat(secondary), [0.36, 1.0, 0], [1, 1, 1], [0, 0, -0.18])
+    add(group, latheGuide([
+      [0.06, 0], [0.38, 0.06], [0.46, 0.5], [0.42, 1.1], [0.3, 1.5], [0.22, 1.62]
+    ], 12), mat(primary, { roughness: 0.72 }), [0, 0.9, 0], [1, 1, 1], [-Math.PI / 2, 0, 0])
+    const head = add(group, sphereGuide(0.33, 14, 12), mat('#f1c9a5', { roughness: 0.55 }), [0, 1.78, 0])
+    add(group, latheGuide([[0, 0], [0.34, 0.16], [0.36, 0.5], [0.26, 0.66], [0, 0.7]], 12), mat(secondary, { roughness: 0.7 }), [0, 1.96, -0.05], [1, 1, 1], [-Math.PI / 2, 0, 0])
+    add(group, sphereGuide(0.055, 8, 6), mat('#1b1d24', { roughness: 0.3 }), [-0.12, 1.8, 0.3])
+    add(group, sphereGuide(0.055, 8, 6), mat('#1b1d24', { roughness: 0.3 }), [0.12, 1.8, 0.3])
+    add(group, sphereGuide(0.045, 8, 6), mat('#d98f7e', { roughness: 0.6 }), [0, 1.72, 0.32], [1.3, 0.7, 0.6])
+    for (const side of [-1, 1]) {
+      const arm = add(group, capsuleGuide(0.07, 0.9, 10), mat(primary, { roughness: 0.72 }), [side * 0.42, 1.3, 0.02], [1, 1, 1], [0, 0, side * 0.22])
+      group.add(arm)
+      add(group, sphereGuide(0.1, 10, 8), mat('#f1c9a5', { roughness: 0.6 }), [side * 0.5, 1.0, 0.02])
+    }
+    if (role === 'shopkeeper') add(group, sphereGuide(0.1, 10, 8), mat('#ffd166', { emissive: '#ffd166', emissiveIntensity: 0.3 }), [0, 2.02, 0.12])
+    if (role === 'attendant') add(group, latheGuide([[0, 0], [0.24, 0.5], [0.2, 0.9], [0, 0.94]], 10), mat(secondary, { roughness: 0.6 }), [0, 2.3, -0.1], [1, 1, 1], [-Math.PI / 2, 0, 0])
     group.userData.role = role
     return group
   }
@@ -562,6 +602,7 @@ export class World {
         this.addFlowerInstances(center, radius, counts.flowers, rng)
         this.addPond(center[0] - 14, center[1] + 10, 6.5, '#3f9bff')
         this.addStream()
+        this.addFireflies(center, radius, rng)
       } else if (biome === 'ember') {
         for (let i = 0; i < counts.spires; i++) {
           const [x, z] = sample()
@@ -578,6 +619,7 @@ export class World {
           this.addLavaPool(x, z, 3.2 + rng() * 2.4)
         }
         this.addEmberParticles(rng)
+        this.addLavaCracks(center, radius, rng)
       } else if (biome === 'tide') {
         for (let i = 0; i < counts.corals; i++) {
           const [x, z] = sample()
@@ -596,6 +638,7 @@ export class World {
         this.addGrassInstances(center, radius, counts.grass, '#5b9f8a', rng)
         this.addFlowerInstances(center, radius, counts.flowers, rng, true)
         this.addShellProps(center, radius, rng)
+        this.addFoamDots(center, radius, rng)
       } else if (biome === 'frost') {
         for (let i = 0; i < counts.pines; i++) {
           const [x, z] = sample()
@@ -615,6 +658,8 @@ export class World {
         this.addPond(center[0] - 13, center[1] - 8, 6, '#9be8ff', true)
         this.addGrassInstances(center, radius, counts.grass, '#e8fbff', rng)
         this.addSnowParticles(rng)
+        this.addSnowDrifts(center, radius, rng)
+        this.addAurora('frost')
       } else if (biome === 'astral') {
         for (let i = 0; i < counts.crystals; i++) {
           const [x, z] = sample()
@@ -633,6 +678,7 @@ export class World {
         }
         this.addGrassInstances(center, radius, counts.grass, '#b98bff', rng)
         this.addFlowerInstances(center, radius, counts.flowers, rng, false, true)
+        this.addAurora('astral')
       }
     }
     // Outer wilds filler.
@@ -792,13 +838,34 @@ export class World {
     group.position.set(x, y, z)
     group.rotation.y = rng() * Math.PI * 2
     this.root.add(group)
-    add(group, new THREE.CylinderGeometry(0.22 * scale, 0.42 * scale, 2.7 * scale, 5), mat('#6b5138'), [0, 1.35 * scale, 0])
-    const palette = type === 'verdant' ? ['#4b9e4d', '#63c96b', '#88e07d'] : ['#557a58', '#6b9b66', '#8cb879']
-    for (let i = 0; i < 4; i++) {
-      const leaf = add(group, new THREE.IcosahedronGeometry((1.1 - i * 0.16) * scale, 0), mat(palette[i % palette.length]), [Math.cos(i * 2.3) * 0.5 * scale, (2.8 + i * 0.66) * scale, Math.sin(i * 2.3) * 0.5 * scale], [1.2, 0.9, 1.2], [rng(), rng(), rng()])
+    add(group, latheGuide([
+      [0.02, 0], [0.3, 0.12], [0.24, 1.1], [0.17, 2.1], [0.12, 2.7], [0.04, 2.8]
+    ], 10), mat('#6b5138', { roughness: 0.88 }), [0, 0, 0], [scale, scale, scale], [-Math.PI / 2, 0, 0])
+    const lean = (rng() - 0.5) * 0.24
+    const palette = type === 'verdant'
+      ? ['#4b9e4d', '#63c96b', '#88e07d', '#5cbf7a']
+      : ['#557a58', '#6b9b66', '#8cb879', '#7fae74']
+    const lobes = 4 + Math.floor(rng() * 2)
+    const canopyRadius = 1.9 * scale
+    for (let i = 0; i < lobes; i++) {
+      const angle = (i / lobes) * Math.PI * 2
+      const wave = Math.sin(angle * 1.7 + lean)
+      add(
+        group,
+        new THREE.IcosahedronGeometry((1.05 - i * 0.14) * scale, 1),
+        mat(palette[i % palette.length], { roughness: 0.86 }),
+        [Math.cos(angle) * canopyRadius * 0.42 + lean, (2.9 + i * 0.62) * scale, Math.sin(angle) * canopyRadius * 0.42],
+        [1.18, 0.92 - wave * 0.08, 1.18],
+        [rng() * 0.4, rng() * Math.PI, rng() * 0.4]
+      )
     }
-    if (rng() > 0.55) {
-      add(group, new THREE.IcosahedronGeometry(0.18 * scale, 0), mat('#ffd166', { emissive: '#ffd166', emissiveIntensity: 0.6 }), [0.7 * scale, 2.5 * scale, 0.4 * scale])
+    add(group, new THREE.IcosahedronGeometry(0.7 * scale, 1), mat(palette[3], { roughness: 0.86 }), [0, (3.9) * scale, 0], [1.1, 0.95, 1.1])
+    if (rng() > 0.6) {
+      const blossomColor = type === 'verdant' ? '#ffd166' : '#f7d7d0'
+      for (let b = 0; b < 3; b++) {
+        const angle = b * 2.4 + rng() * 0.5
+        add(group, sphereGuide(0.13 * scale, 8, 6), mat(blossomColor, { emissive: blossomColor, emissiveIntensity: 0.4 }), [Math.cos(angle) * 1.4 * scale, (2.6 + rng() * 1.2) * scale, Math.sin(angle) * 1.4 * scale])
+      }
     }
     this.obstacles.push({ x, z, r: 0.75 * scale })
   }
@@ -809,10 +876,13 @@ export class World {
     const group = new THREE.Group()
     group.position.set(x, y, z)
     this.root.add(group)
-    add(group, new THREE.CylinderGeometry(0.16 * scale, 0.3 * scale, 2.2 * scale, 5), mat('#5c4a3d'), [0, 1.1 * scale, 0])
+    add(group, latheGuide([
+      [0.02, 0], [0.26, 0.14], [0.2, 1.4], [0.12, 2.2], [0.03, 2.25]
+    ], 10), mat('#5c4a3d', { roughness: 0.9 }), [0, 0, 0], [scale, scale, scale], [-Math.PI / 2, 0, 0])
     for (let i = 0; i < 4; i++) {
-      add(group, new THREE.ConeGeometry((1.5 - i * 0.28) * scale, 2.1 * scale, 6), mat(i % 2 ? '#d9f4fb' : '#a6d7e2'), [0, (1.7 + i * 1.0) * scale, 0])
+      add(group, new THREE.ConeGeometry((1.5 - i * 0.28) * scale, 2.1 * scale, 7), mat(i % 2 ? '#d9f4fb' : '#a6d7e2', { roughness: 0.8 }), [0, (1.9 + i * 1.05) * scale, 0], [1, 1, 1], [0, 0, (rng() - 0.5) * 0.06])
     }
+    add(group, sphereGuide(0.34 * scale, 8, 6), mat('#f5ffff', { emissive: '#cfeeff', emissiveIntensity: 0.06 }), [0, (4.1) * scale, 0.18], [1, 0.5, 0.9])
     this.obstacles.push({ x, z, r: 0.8 * scale })
   }
 
@@ -1053,6 +1123,106 @@ export class World {
     this.particles.push({ points, type: 'snow', speed: 1.5, bounds: { x: [10, 90], z: [42, 122] } })
   }
 
+  addFireflies(center, radius, rng) {
+    const count = this.quality === 'low' ? 24 : 56
+    const geometry = new THREE.BufferGeometry()
+    const positions = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      const angle = rng() * Math.PI * 2
+      const distance = Math.sqrt(rng()) * radius * 0.85
+      positions[i * 3] = center[0] + Math.cos(angle) * distance
+      positions[i * 3 + 1] = 0.5 + rng() * 3.2
+      positions[i * 3 + 2] = center[1] + Math.sin(angle) * distance
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xd8ff9a, size: 0.14, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }))
+    this.root.add(points)
+    this.particles.push({ points, type: 'firefly', speed: 0.4 })
+  }
+
+  addLavaCracks(center, radius, rng) {
+    for (let i = 0; i < 12; i++) {
+      const angle = rng() * Math.PI * 2
+      const distance = radius * (0.18 + rng() * 0.6)
+      const x = center[0] + Math.cos(angle) * distance
+      const z = center[1] + Math.sin(angle) * distance
+      if (this.isBlocked(x, z, 2.5)) continue
+      const length = 2 + rng() * 3.4
+      const y = terrainHeight(x, z) + 0.06
+      const crack = add(
+        this.root,
+        new THREE.BoxGeometry(0.14, 0.04, length),
+        mat('#ff8a4c', { emissive: '#ff4a1a', emissiveIntensity: 1.3, roughness: 0.4 }),
+        [x, y, z],
+        [1, 1, 1],
+        [0, rng() * Math.PI, 0]
+      )
+      this.animated.push({ type: 'lava', mesh: crack, phase: rng() * 6 })
+    }
+  }
+
+  addFoamDots(center, radius, rng) {
+    const count = 42
+    const geometry = new THREE.CircleGeometry(0.16, 7)
+    const material = mat('#ffffff', { transparent: true, opacity: 0.5, roughness: 0.35, emissive: '#cfeeff', emissiveIntensity: 0.1, depthWrite: false })
+    const mesh = new THREE.InstancedMesh(geometry, material, count)
+    const dummy = new THREE.Object3D()
+    let index = 0
+    for (let i = 0; i < count; i++) {
+      const angle = rng() * Math.PI * 2
+      const distance = radius * (0.72 + rng() * 0.24)
+      const x = center[0] + Math.cos(angle) * distance
+      const z = center[1] + Math.sin(angle) * distance
+      dummy.position.set(x, terrainHeight(x, z) + 0.05, z)
+      dummy.rotation.set(-Math.PI / 2, 0, rng() * Math.PI)
+      dummy.scale.setScalar(0.6 + rng() * 0.9)
+      dummy.updateMatrix()
+      mesh.setMatrixAt(index++, dummy.matrix)
+    }
+    mesh.count = index
+    this.root.add(mesh)
+  }
+
+  addSnowDrifts(center, radius, rng) {
+    for (let i = 0; i < 9; i++) {
+      const angle = rng() * Math.PI * 2
+      const distance = radius * (0.2 + rng() * 0.66)
+      const x = center[0] + Math.cos(angle) * distance
+      const z = center[1] + Math.sin(angle) * distance
+      if (this.isBlocked(x, z, 2.5)) continue
+      const y = terrainHeight(x, z)
+      const drift = add(
+        this.root,
+        sphereGuide(1.4 + rng() * 2, 12, 8),
+        mat('#f5fbff', { roughness: 0.7 }),
+        [x, y - 0.55, z],
+        [1, 0.42, 1]
+      )
+      drift.receiveShadow = true
+    }
+  }
+
+  addAurora(biome) {
+    const palette = biome === 'frost' ? ['#9fffe3', '#a9d8ff', '#d0ffe8'] : ['#e8b4ff', '#b4a9ff', '#ffd6ff']
+    const [cx, cz] = BIOMES[biome].center
+    const bands = biome === 'frost' ? 4 : 5
+    for (let i = 0; i < bands; i++) {
+      const color = palette[i % palette.length]
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(cx - 70, 24 + i * 3.2 + Math.sin(i) * 2, cz + i * 4),
+        new THREE.Vector3(cx - 26, 30 + i * 3.4, cz + (i - 2) * 3),
+        new THREE.Vector3(cx + 22, 27 + i * 3.8, cz - (i - 2) * 3),
+        new THREE.Vector3(cx + 66, 23 + i * 3.4, cz + i * 4)
+      ])
+      const ribbon = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 40, 1.5 + i * 0.5, 8, false),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1 + i * 0.012, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+      )
+      this.root.add(ribbon)
+      this.animated.push({ type: 'aurora', mesh: ribbon, base: ribbon.material.opacity, phase: i * 0.9 })
+    }
+  }
+
   isBlocked(x, z, minDistance = 4) {
     if (Math.hypot(x, z) < 23) return true
     if (pathDistance(x, z) < 3.4) return true
@@ -1125,6 +1295,8 @@ export class World {
         }
       } else if (entry.type === 'npc') {
         entry.group.position.y = entry.baseY + Math.sin(time * 1.4 + entry.group.id) * 0.04
+      } else if (entry.type === 'aurora') {
+        entry.mesh.material.opacity = (entry.base || 0.1) + Math.sin(time * 0.5 + entry.phase) * 0.028
       } else if (entry.type === 'treadmill') {
         const rollers = entry.group.children.filter((child) => child.geometry?.type === 'CylinderGeometry')
         for (const roller of rollers) roller.rotation.x += dt * (entry.offset % 2 ? 1.4 : 1.0)
@@ -1146,6 +1318,12 @@ export class World {
           positions[i + 1] -= dt * system.speed * (0.5 + (i % 5) * 0.1)
           positions[i] += Math.sin(time + i) * dt * 0.12
           if (positions[i + 1] < 0) positions[i + 1] = 14
+        }
+      } else if (system.type === 'firefly') {
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i] += Math.sin(time * 0.7 + i * 0.35) * dt * 0.28
+          positions[i + 1] += Math.sin(time * 0.95 + i) * dt * 0.36
+          positions[i + 2] += Math.cos(time * 0.55 + i * 0.21) * dt * 0.28
         }
       }
       system.points.geometry.attributes.position.needsUpdate = true

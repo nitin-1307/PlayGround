@@ -496,7 +496,7 @@ input[type="range"] { accent-color: var(--teal); width: 130px; }
 .mobile-touch-button { width: 74px; height: 74px; border-radius: 50%; border: 1px solid var(--border); background: rgba(12,20,35,0.55); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; color: var(--gold-soft); gap: 2px; }
 .mobile-touch-button small { font-size: 8px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); }
 .battle-active .mobile-actions { display: none; }
-.battle-active .joystick { left: 14px; bottom: 300px; width: 96px; height: 96px; opacity: 0.82; }
+.battle-active .joystick { left: 14px; top: clamp(140px, 30vh, 260px); bottom: auto; width: 96px; height: 96px; opacity: 0.82; }
 .battle-active .joystick-knob { width: 40px; height: 40px; margin: -20px; }
 body.touch .desktop-only { display: none; }
 

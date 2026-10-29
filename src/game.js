@@ -97,6 +97,7 @@ export class Game {
     this.ui.setLegendary(legendaryStatus(profile))
     this.lastBiome = 'hub'
     this.syncCompanion()
+    this.engine.setAtmosphere('hub')
   }
 
   makeCallbacks() {
@@ -362,6 +363,7 @@ export class Game {
       this.world.update(dt, time)
       this.wilds.update(dt, time, this.player.position, this.legendaryEvent)
       battleScene.update(dt, this.input)
+      this.engine.updateAtmosphere(dt)
       this.engine.render(this.mode === 'battle' && this.battleScene === battleScene ? battleScene.scene : this.engine.scene)
       this.input.clearFrame()
       this.autosave(dt)
@@ -375,6 +377,7 @@ export class Game {
     this.updateCompanion(dt, time, exploring)
     this.world.update(dt, time)
     this.wilds.update(dt, time, this.player.position, this.legendaryEvent)
+    this.engine.updateAtmosphere(dt)
     this.ui.refreshTrainingLive(nowMs())
 
     if (this.mode === 'explore') {
@@ -403,6 +406,7 @@ export class Game {
       if (biome !== this.lastBiome) {
         this.lastBiome = biome
         this.ui.setLocation(biome)
+        this.engine.setAtmosphere(biome)
         if (!this.profile.flags.visitedBiomes.includes(biome)) {
           this.profile.flags.visitedBiomes.push(biome)
           this.ui.showToast(`Discovered ${BIOMES[biome]?.name || biome}.`, 'gold', '✦')

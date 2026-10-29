@@ -65,14 +65,14 @@ npm run preview # Serve the production build on port 3002
 
 ## Build ledger
 
-Last verified: 2026-10-28.
+Last verified: 2026-10-29.
 
 | Check | Result |
 | --- | --- |
 | `npm run check` | Pass: 150 species, 58 moves, 8 bounties, 7 items |
 | `npm test` | Pass: 29/29 tests |
 | `npm run build` | Pass: 29 modules transformed; static output in `dist/` |
-| Browser smoke test | Pass at 1050×768, 390×844, and 360×732; 0 console errors |
+| Browser smoke test | Pass at 1000×720 desktop and 360×732 mobile; 0 console errors |
 | Mobile battle | Pass: joystick movement, touch actions, and end-of-battle transition |
 
 Browser captures were rendered with Chromium and SwiftShader CPU software rendering. No GPU hardware acceleration is claimed. Verified flows include onboarding, exploration, wild and practice battles, defeat/victory/capture results, party and inventory, shop, fountain healing, quests, training, legendary capture, save reload, and mobile layouts.
